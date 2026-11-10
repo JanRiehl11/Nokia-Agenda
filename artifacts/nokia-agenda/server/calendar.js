@@ -175,7 +175,11 @@ export async function refreshCalendar() {
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = (async () => {
-    calendar = { ...calendar, lastAttemptAt: new Date().toISOString() };
+    calendar = {
+      ...calendar,
+      lastAttemptAt: new Date().toISOString(),
+      errorCode: calendar.lastSuccessAt ? calendar.errorCode : "loading",
+    };
 
     try {
       const url = validateFeedUrl();
@@ -257,7 +261,11 @@ export async function getCalendarSnapshot({ force = false } = {}) {
     !calendar.lastSuccessAt ||
     Date.now() - new Date(calendar.lastSuccessAt).getTime() >= REFRESH_INTERVAL_MS;
 
-  if (force || due) await refreshCalendar();
+  if (force) {
+    await refreshCalendar();
+  } else if (due) {
+    void refreshCalendar();
+  }
 
   return {
     configured: true,
@@ -309,6 +317,8 @@ export function getSafeCalendarMessage(errorCode) {
   switch (errorCode) {
     case "not-configured":
       return "Calendar not connected. Add ICS_URL in Replit Secrets.";
+    case "loading":
+      return "Calendar is loading. Try again in a moment.";
     case "invalid-url":
       return "Invalid iCal URL. Use the private HTTPS feed URL in Replit Secrets.";
     case "network":

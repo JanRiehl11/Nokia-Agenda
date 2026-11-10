@@ -171,7 +171,7 @@ app.get("/", async (_req, res) => {
   const snapshot = await getCalendarSnapshot();
   const todayKey = getTodayKey();
   if (!snapshot.lastSuccessAt) {
-    res.status(503).send(unavailablePage(snapshot, todayKey));
+    res.status(200).send(unavailablePage(snapshot, todayKey));
     return;
   }
   const todayEvents = getEventsForDay(snapshot.events, todayKey);
@@ -183,7 +183,7 @@ app.get("/today", async (_req, res) => {
   const snapshot = await getCalendarSnapshot();
   const todayKey = getTodayKey();
   if (!snapshot.lastSuccessAt) {
-    res.status(503).send(unavailablePage(snapshot, todayKey));
+    res.status(200).send(unavailablePage(snapshot, todayKey));
     return;
   }
   res.send(
@@ -199,7 +199,7 @@ app.get("/tomorrow", async (_req, res) => {
   const snapshot = await getCalendarSnapshot();
   const todayKey = getTodayKey();
   if (!snapshot.lastSuccessAt) {
-    res.status(503).send(unavailablePage(snapshot, todayKey));
+    res.status(200).send(unavailablePage(snapshot, todayKey));
     return;
   }
   const tomorrowKey = dateKeyOffset(todayKey, 1);
@@ -217,7 +217,7 @@ app.get("/upcoming", async (_req, res) => {
   const snapshot = await getCalendarSnapshot();
   const todayKey = getTodayKey();
   if (!snapshot.lastSuccessAt) {
-    res.status(503).send(unavailablePage(snapshot, todayKey));
+    res.status(200).send(unavailablePage(snapshot, todayKey));
     return;
   }
   res.send(
@@ -230,7 +230,7 @@ app.get("/upcoming", async (_req, res) => {
 app.get("/event/:id", async (req, res) => {
   const snapshot = await getCalendarSnapshot();
   if (!snapshot.lastSuccessAt) {
-    res.status(503).send(unavailablePage(snapshot, getTodayKey()));
+    res.status(200).send(unavailablePage(snapshot, getTodayKey()));
     return;
   }
   const event = getEventById(snapshot.events, req.params.id);
@@ -246,7 +246,9 @@ app.get("/settings", async (req, res) => {
     ? snapshot.errorCode
       ? "Unavailable — showing cached calendar"
       : "Connected"
-    : snapshot.errorCode
+    : snapshot.errorCode === "loading"
+      ? "Connecting"
+      : snapshot.errorCode
       ? "Unavailable"
       : "Not yet refreshed";
   res.send(
