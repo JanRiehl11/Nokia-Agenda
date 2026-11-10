@@ -1,0 +1,150 @@
+# Nokia Agenda 1.0 — Replit Project
+
+Build a complete, lightweight, read-only web calendar for the Nokia 110 4G (2024).
+
+## 1. Target device
+- Nokia 110 4G (2024).
+- S30+ operating system.
+- QQVGA display (160 × 120 pixels).
+- Older and limited mobile browser.
+- Physical navigation buttons.
+- Mobile data connection.
+
+The application must prioritize compatibility, low memory usage and fast loading.
+
+## 2. Technology
+- Node.js
+- Express
+- Server-rendered HTML
+- Vanilla JavaScript only where necessary
+- Lightweight CSS
+- An ICS calendar parser (node-ical)
+
+Do not use React, Next.js, Vue, Tailwind or other heavy frameworks.
+
+## 3. Google Calendar integration
+Read a Google Calendar using its private iCal URL.
+
+Configuration:
+- Environment variable: ICS_URL
+- Timezone: Europe/Amsterdam
+- Refresh interval: 15 minutes
+- Cache calendar results on the server.
+- Parse recurring events correctly.
+- Handle all-day events.
+- Handle cancelled events.
+- Correctly convert UTC event times to local Dutch time.
+
+Never expose the ICS URL to the browser.
+
+## 4. Main interface
+
+Create these pages:
+
+### Home
+- Title: AGENDA
+- Current date
+- Today's events
+- Next upcoming event
+- Navigation links
+
+### Today
+- All events for today
+- Start time
+- Event title
+- Location if available
+
+### Tomorrow
+- Tomorrow's events
+
+### Upcoming
+- Events for the next 7 days
+- Group events by date
+
+### Event details
+- Event title
+- Date
+- Start and end time
+- Location
+- Description, if available
+
+### Settings
+- Show connection status
+- Show last successful refresh
+- Manual refresh button
+
+## 5. Navigation
+Use simple HTML links and forms.
+
+Navigation:
+- TODAY
+- TOMORROW
+- UPCOMING
+- BACK
+
+Support physical navigation buttons and keyboard focus.
+
+## 6. Visual design
+Create a classic feature-phone interface.
+
+- Black background.
+- White text.
+- High contrast.
+- Small but readable typography.
+- Minimal borders.
+- No animations.
+- No gradients.
+- No unnecessary images.
+- No horizontal scrolling.
+
+Use responsive CSS and support 160 × 120, 240 × 320 and larger displays.
+
+At 160 × 120, prioritize the current date, next appointment and navigation. Allow scrolling to see additional events.
+
+## 7. Performance
+- Minimal HTML output.
+- Minimal JavaScript.
+- No external fonts.
+- No external images.
+- No unnecessary API requests.
+- Server-side rendering.
+- Lightweight responses.
+
+## 8. Security
+- Keep ICS_URL in Replit Secrets.
+- Never send the private calendar URL to the client.
+- Add a configurable access PIN.
+- Protect calendar routes and API endpoints.
+- Use secure session cookies.
+- Do not log the private ICS URL.
+- Do not expose calendar information publicly.
+
+## 9. Error handling
+Display understandable messages for:
+- Calendar unavailable.
+- Invalid iCal URL.
+- Internet connection failure.
+- No appointments found.
+- Last successful refresh.
+
+Keep the last cached calendar available if a refresh fails.
+
+## 10. Deployment
+- Make the application compatible with Replit Deployments.
+- Use the PORT environment variable.
+- Provide HTTPS.
+- Include a README with installation and configuration instructions.
+- Add a health-check endpoint.
+
+## 11. Important restriction
+This application is strictly READ-ONLY.
+
+Do not implement:
+- Creating appointments.
+- Editing appointments.
+- Deleting appointments.
+- Sending calendar invitations.
+
+Build the complete working application, not just a visual prototype.
+
+Test the application at 160 × 120 pixels and ensure all essential functions remain usable.
