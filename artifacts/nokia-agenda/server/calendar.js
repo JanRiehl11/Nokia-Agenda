@@ -332,6 +332,14 @@ export function getSafeCalendarMessage(errorCode) {
   }
 }
 
+export function getCalendarStatus(snapshot) {
+  if (snapshot.lastSuccessAt) {
+    return snapshot.errorCode ? "Unavailable — showing cached events" : "Connected";
+  }
+  if (snapshot.errorCode === "loading") return "Connecting";
+  return snapshot.errorCode ? "Unavailable" : "Not yet refreshed";
+}
+
 export function formatLastRefresh(dateString) {
   if (!dateString) return "Not yet";
   const date = new Date(dateString);

@@ -5,6 +5,7 @@ import cookieSession from "cookie-session";
 import express from "express";
 import {
   formatLastRefresh,
+  getCalendarStatus,
   getCalendarSnapshot,
   getDateLabel,
   getEventById,
@@ -242,15 +243,7 @@ app.get("/settings", async (req, res) => {
   const manualRefreshError = req.query.refresh === "failed"
     ? getSafeCalendarMessage(snapshot.errorCode || "unavailable")
     : "";
-  const status = snapshot.lastSuccessAt
-    ? snapshot.errorCode
-      ? "Unavailable — showing cached calendar"
-      : "Connected"
-    : snapshot.errorCode === "loading"
-      ? "Connecting"
-      : snapshot.errorCode
-      ? "Unavailable"
-      : "Not yet refreshed";
+  const status = getCalendarStatus(snapshot);
   res.send(
     renderSettings({
       status,
