@@ -1,45 +1,55 @@
-# [Project name]
+# Nokia Agenda
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A private, read-only, server-rendered calendar for the Nokia 110 4G feature phone.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/nokia-agenda run dev` — run the calendar web app
+- `pnpm --filter @workspace/nokia-agenda run typecheck` — check the app's server files
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required Replit Secrets: `ICS_URL`, `AGENDA_PIN`, `SESSION_SECRET`
+- The app reads `PORT` from its Replit workflow/deployment.
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- pnpm workspaces and Node.js 24
+- Nokia Agenda: Express, `node-ical`, `cookie-session`, server-rendered HTML, and lightweight CSS
+- The Nokia Agenda does not use React, a browser-side app framework, or a database.
+- The shared API server and database libraries are separate from the calendar app.
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/nokia-agenda/server/index.js` — protected Express routes and session handling
+- `artifacts/nokia-agenda/server/calendar.js` — iCal fetching, parsing, recurring-event expansion, and server cache
+- `artifacts/nokia-agenda/server/views.js` — escaped server-rendered pages
+- `artifacts/nokia-agenda/public/agenda.css` — feature-phone responsive styles
+- `artifacts/nokia-agenda/README.md` — setup and run instructions
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Calendar pages are rendered on the server to keep client payload and memory use low.
+- The app reads a private iCal feed directly; the feed URL and access PIN must remain in Replit Secrets.
+- A successful calendar refresh is cached in memory for 15 minutes; refresh failures preserve the last successful in-process cache.
+- Only the health endpoint is public; calendar pages require a PIN-backed signed session cookie.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+The app shows today's and tomorrow's appointments, a seven-day agenda, event details, and calendar connection status. It is strictly read-only.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Target the Nokia 110 4G (2024), S30+, including a 160 × 120 display and physical navigation.
+- Keep the UI black and white, lightweight, responsive, and free of animations, gradients, external fonts, and images.
+- Do not create, edit, delete, or invite calendar events.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Without both `ICS_URL` and `AGENDA_PIN`, the app shows setup instructions and exposes no calendar data.
+- Never put the private iCal URL in source, client HTML, logs, or chat.
+- Replit Secrets changes may require restarting the web workflow before the app reads new values.
 
 ## Pointers
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- See `artifacts/nokia-agenda/README.md` for setup details.
+- See the `pnpm-workspace` skill for workspace structure and package details.

@@ -1,0 +1,32 @@
+kind = "web"
+previewPath = "/"
+title = "Nokia Agenda"
+description = "A private, read-only server-rendered calendar for the Nokia 110 4G, with a compact feature-phone interface, Dutch timezone handling, and a protected iCal feed."
+version = "1.0.0"
+id = "artifacts/nokia-agenda"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20703
+
+[services.development]
+run = "pnpm --filter @workspace/nokia-agenda run dev"
+
+[services.production]
+[services.production.build]
+args = [ "pnpm", "--filter", "@workspace/nokia-agenda", "run", "build" ]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = [ "node", "artifacts/nokia-agenda/server/index.js" ]
+
+[services.production.run.env]
+PORT = "20703"
+NODE_ENV = "production"
+
+[services.production.health.startup]
+path = "/healthz"
