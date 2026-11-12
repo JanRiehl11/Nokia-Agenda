@@ -66,23 +66,10 @@ export function renderDocument({ title, dateLabel, active, body }) {
 </html>`;
 }
 
-export function renderLogin({ error }) {
-  const body = `<section class="screen screen-login" aria-labelledby="screen-title">
-    <h1 id="screen-title">SIGN IN</h1>
-    ${error ? `<p class="notice notice-error" role="alert">${escapeHtml(error)}</p>` : ""}
-    <form method="post" action="/login">
-      <label for="login-code">ACCESS CODE</label>
-      <input id="login-code" name="code" type="password" autocomplete="current-password" required>
-      <button type="submit">OPEN AGENDA</button>
-    </form>
-  </section>`;
-  return renderDocument({ title: "Sign in — Agenda", active: "", body });
-}
-
 export function renderSetup() {
   const body = `<section class="screen" aria-labelledby="screen-title">
     <h1 id="screen-title">SET UP AGENDA</h1>
-    <p class="screen-copy">Add ICS_URL and AGENDA_PIN in Replit Secrets to protect and connect this calendar.</p>
+    <p class="screen-copy">Add ICS_URL in Replit Secrets to connect this calendar.</p>
     <p class="screen-copy">The private calendar address is never entered on this page.</p>
   </section>`;
   return renderDocument({ title: "Setup — Agenda", active: "settings", body });

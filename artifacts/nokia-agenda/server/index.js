@@ -1,7 +1,5 @@
 import path from "node:path";
-import { timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import cookieSession from "cookie-session";
 import express from "express";
 import {
   formatLastRefresh,
@@ -21,7 +19,6 @@ import {
   renderEventDetail,
   renderEventList,
   renderHome,
-  renderLogin,
   renderSettings,
   renderSetup,
   renderUpcoming,
@@ -29,21 +26,14 @@ import {
 
 const app = express();
 const port = Number(process.env.PORT);
-const sessionSecret = process.env.SESSION_SECRET;
-const pin = process.env.AGENDA_PIN;
 const currentFile = fileURLToPath(import.meta.url);
 const currentDirectory = path.dirname(currentFile);
 const publicDirectory = path.join(currentDirectory, "../public");
-const attemptsByAddress = new Map();
-const LOGIN_WINDOW_MS = 15 * 60 * 1000;
-const LOGIN_MAX_ATTEMPTS = 5;
+const MANUAL_REFRESH_COOLDOWN_MS = 60 * 1000;
+let lastManualRefreshAt = 0;
 
 if (!Number.isInteger(port) || port <= 0) {
   throw new Error("A valid PORT environment variable is required.");
-}
-
-if (!sessionSecret) {
-  throw new Error("SESSION_SECRET must be configured in Replit Secrets.");
 }
 
 app.set("trust proxy", 1);
@@ -58,49 +48,11 @@ app.use((req, res, next) => {
   });
   next();
 });
-app.use(express.urlencoded({ extended: false, limit: "1kb" }));
-app.use(
-  cookieSession({
-    name: "nokia-agenda",
-    keys: [sessionSecret],
-    maxAge: 8 * 60 * 60 * 1000,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-  }),
-);
 app.use(express.static(publicDirectory, { index: false, fallthrough: true, maxAge: "1h" }));
 
 app.get("/healthz", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
-
-function hasConfiguration() {
-  return Boolean(process.env.ICS_URL && pin);
-}
-
-function loginAttemptState(address) {
-  const now = Date.now();
-  const current = attemptsByAddress.get(address);
-  if (!current || current.expiresAt <= now) {
-    const next = { count: 0, expiresAt: now + LOGIN_WINDOW_MS };
-    attemptsByAddress.set(address, next);
-    return next;
-  }
-  return current;
-}
-
-function safeComparePin(candidate, expected) {
-  const candidateBytes = Buffer.from(String(candidate ?? ""), "utf8");
-  const expectedBytes = Buffer.from(String(expected ?? ""), "utf8");
-  const length = Math.max(candidateBytes.length, expectedBytes.length, 1);
-  const paddedCandidate = Buffer.alloc(length);
-  const paddedExpected = Buffer.alloc(length);
-  candidateBytes.copy(paddedCandidate);
-  expectedBytes.copy(paddedExpected);
-  const matches = timingSafeEqual(paddedCandidate, paddedExpected);
-  return matches && candidateBytes.length === expectedBytes.length;
-}
 
 function unavailablePage(snapshot, dateKey) {
   const message = getSafeCalendarMessage(snapshot.errorCode);
@@ -117,56 +69,19 @@ function unavailablePage(snapshot, dateKey) {
   });
 }
 
-function requireAgenda(req, res, next) {
-  if (!hasConfiguration()) {
+function requireCalendarConfiguration(_req, res, next) {
+  if (!process.env.ICS_URL) {
     res.status(200).send(renderSetup());
-    return;
-  }
-  if (!req.session?.authenticated) {
-    res.redirect("/login");
     return;
   }
   next();
 }
 
+app.use(requireCalendarConfiguration);
+
 app.get("/login", (_req, res) => {
-  if (!hasConfiguration()) {
-    res.status(200).send(renderSetup());
-    return;
-  }
-  res.send(renderLogin({ error: "" }));
-});
-
-app.post("/login", (req, res) => {
-  if (!hasConfiguration()) {
-    res.status(200).send(renderSetup());
-    return;
-  }
-
-  const address = req.ip || "unknown";
-  const attempt = loginAttemptState(address);
-  if (attempt.count >= LOGIN_MAX_ATTEMPTS) {
-    res.status(429).send(renderLogin({ error: "Too many attempts. Try again in 15 minutes." }));
-    return;
-  }
-
-  if (!safeComparePin(req.body?.code, pin)) {
-    attempt.count += 1;
-    if (attemptsByAddress.size > 1000) {
-      for (const [key, value] of attemptsByAddress) {
-        if (value.expiresAt <= Date.now()) attemptsByAddress.delete(key);
-      }
-    }
-    res.status(401).send(renderLogin({ error: "The access code is not correct." }));
-    return;
-  }
-
-  attemptsByAddress.delete(address);
-  req.session = { authenticated: true };
   res.redirect("/today");
 });
-
-app.use(requireAgenda);
 
 app.get("/", async (_req, res) => {
   const snapshot = await getCalendarSnapshot();
@@ -242,6 +157,8 @@ app.get("/settings", async (req, res) => {
   const snapshot = await getCalendarSnapshot();
   const manualRefreshError = req.query.refresh === "failed"
     ? getSafeCalendarMessage(snapshot.errorCode || "unavailable")
+    : req.query.refresh === "throttled"
+      ? "Please wait a minute before refreshing again."
     : "";
   const status = getCalendarStatus(snapshot);
   res.send(
@@ -254,6 +171,11 @@ app.get("/settings", async (req, res) => {
 });
 
 app.post("/settings/refresh", async (_req, res) => {
+  if (Date.now() - lastManualRefreshAt < MANUAL_REFRESH_COOLDOWN_MS) {
+    res.redirect("/settings?refresh=throttled");
+    return;
+  }
+  lastManualRefreshAt = Date.now();
   const result = await getCalendarSnapshot({ force: true });
   res.redirect(result.errorCode ? "/settings?refresh=failed" : "/settings");
 });
