@@ -30,6 +30,13 @@ const currentFile = fileURLToPath(import.meta.url);
 const currentDirectory = path.dirname(currentFile);
 const publicDirectory = path.join(currentDirectory, "../public");
 const MANUAL_REFRESH_COOLDOWN_MS = 60 * 1000;
+const defaultAllowedOrigin = "https://janriehl11.github.io";
+const allowedAgendaOrigins = new Set(
+  (process.env.AGENDA_ALLOWED_ORIGINS || defaultAllowedOrigin)
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+);
 let lastManualRefreshAt = 0;
 
 if (!Number.isInteger(port) || port <= 0) {
@@ -44,7 +51,7 @@ app.use((req, res, next) => {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
     "X-Frame-Options": "DENY",
-    "Content-Security-Policy": "default-src 'none'; style-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+    "Content-Security-Policy": "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self' https://nokia-agenda--janriehl11.replit.app; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
   });
   next();
 });
@@ -52,6 +59,83 @@ app.use(express.static(publicDirectory, { index: false, fallthrough: true, maxAg
 
 app.get("/healthz", (_req, res) => {
   res.status(200).json({ status: "ok" });
+});
+
+function agendaApiCors(req, res, next) {
+  const origin = req.get("Origin");
+  res.vary("Origin");
+  res.set({
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "600",
+  });
+
+  if (origin) {
+    if (!allowedAgendaOrigins.has(origin)) {
+      res.status(403).json({ errorMessage: "This website is not allowed to use the agenda API." });
+      return;
+    }
+    res.set("Access-Control-Allow-Origin", origin);
+  }
+
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+  next();
+}
+
+function createAgendaPayload(snapshot) {
+  const todayKey = getTodayKey();
+  const tomorrowKey = dateKeyOffset(todayKey, 1);
+  const events = snapshot.events.map((event) => ({
+    ...event,
+    dateLabel: getDateLabel(event.startDateKey),
+  }));
+
+  return {
+    configured: snapshot.configured,
+    ready: Boolean(snapshot.lastSuccessAt),
+    status: getCalendarStatus(snapshot),
+    errorMessage: snapshot.errorCode ? getSafeCalendarMessage(snapshot.errorCode) : "",
+    refreshedAt: formatLastRefresh(snapshot.lastSuccessAt),
+    todayKey,
+    todayLabel: getDateLabel(todayKey),
+    tomorrowLabel: getDateLabel(tomorrowKey),
+    nextEvent: getNextEvent(events),
+    todayEvents: getEventsForDay(events, todayKey),
+    tomorrowEvents: getEventsForDay(events, tomorrowKey),
+    upcomingGroups: getUpcomingGroups(events, todayKey, 7),
+    events,
+  };
+}
+
+app.use("/agenda-api", agendaApiCors);
+
+app.get("/agenda-api/agenda", async (_req, res) => {
+  let snapshot = await getCalendarSnapshot();
+  if (!snapshot.lastSuccessAt && snapshot.errorCode === "loading") {
+    snapshot = await getCalendarSnapshot({ force: true });
+  }
+  res.json(createAgendaPayload(snapshot));
+});
+
+app.post("/agenda-api/agenda/refresh", async (_req, res) => {
+  const now = Date.now();
+  const waitMs = MANUAL_REFRESH_COOLDOWN_MS - (now - lastManualRefreshAt);
+  if (waitMs > 0) {
+    const retryAfterSeconds = Math.ceil(waitMs / 1000);
+    res.set("Retry-After", String(retryAfterSeconds));
+    res.status(429).json({
+      errorMessage: "Please wait a minute before refreshing again.",
+      retryAfterSeconds,
+    });
+    return;
+  }
+
+  lastManualRefreshAt = now;
+  const snapshot = await getCalendarSnapshot({ force: true });
+  res.json(createAgendaPayload(snapshot));
 });
 
 function unavailablePage(snapshot, dateKey) {

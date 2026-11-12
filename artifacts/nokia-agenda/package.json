@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --watch server/index.js",
     "start": "node server/index.js",
-    "build": "node --check server/index.js && node --check server/calendar.js && node --check server/views.js",
+    "build": "node --check server/index.js && node --check server/calendar.js && node --check server/views.js && node --check public/pages-app.js && node --check public/pages-config.js",
     "typecheck": "pnpm run build",
     "test": "node --test server/*.test.js"
   },

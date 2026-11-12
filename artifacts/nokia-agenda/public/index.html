@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="A simple public calendar for the Nokia 110 4G.">
+    <title>Nokia Agenda</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="stylesheet" href="./agenda.css">
+    <script src="./pages-config.js" defer></script>
+    <script src="./pages-app.js" defer></script>
+  </head>
+  <body>
+    <div class="device">
+      <header class="topline">
+        <a class="brand" href="#today" aria-label="Agenda home">AGENDA</a>
+        <span class="date-label" id="date-label"></span>
+      </header>
+      <nav class="main-nav" aria-label="Agenda navigation">
+        <a href="#today" data-nav="today">TODAY</a>
+        <a href="#tomorrow" data-nav="tomorrow">TOMORROW</a>
+        <a href="#upcoming" data-nav="upcoming">UPCOMING</a>
+        <a href="#settings" data-nav="settings">SETTINGS</a>
+      </nav>
+      <main id="main-content" aria-live="polite">
+        <section class="screen"><p class="screen-copy">Loading calendar…</p></section>
+      </main>
+      <footer class="bottomline">
+        <a href="#today">BACK</a>
+        <span>SELECT</span>
+      </footer>
+    </div>
+  </body>
+</html>
